@@ -303,10 +303,12 @@ class RestaurantDetailModal {
     __publicField(this, "deleteButton");
     __publicField(this, "updateFavoriteStatus");
     __publicField(this, "deleteRestaurant");
+    __publicField(this, "boundHandleStarIconClick");
     this.restaurant = restaurant;
     this.modalElement = document.getElementById(
       "restaurant-detail-dialog"
     );
+    this.boundHandleStarIconClick = this.handleStarIconClick.bind(this);
     this.addRestaurantDetail();
     this.closeButton = document.querySelector(
       ".detail-close-button"
@@ -318,22 +320,24 @@ class RestaurantDetailModal {
     this.deleteRestaurant = deleteRestaurant;
     this.addEventListeners();
   }
+  handleStarIconClick(e) {
+    let { name, isFavorite } = this.restaurant;
+    const starIcon = e.target.closest(
+      ".star-icon"
+    );
+    if (starIcon) {
+      starIcon.src = !isFavorite ? "images/star.png" : "images/empty-star.png";
+      this.restaurant.isFavorite = !isFavorite;
+      this.updateFavoriteStatus(name);
+      return;
+    }
+  }
   addRestaurantDetail() {
     let { category, name, distance, description, link, isFavorite } = this.restaurant;
     const container = document.querySelector(
       "#detail-modal-container"
     );
-    container.addEventListener("click", (e) => {
-      const starIcon = e.target.closest(
-        ".star-icon"
-      );
-      if (starIcon) {
-        starIcon.src = !isFavorite ? "images/star.png" : "images/empty-star.png";
-        isFavorite = !isFavorite;
-        this.updateFavoriteStatus(name);
-        return;
-      }
-    });
+    container.addEventListener("click", this.boundHandleStarIconClick);
     const mappedImage = IMAGE_SRC_BY_RESTAURANTS_CATEGORY[category] || "images/default.png";
     container.innerHTML = `
           <div class="icon-container">
@@ -363,6 +367,10 @@ class RestaurantDetailModal {
   }
   close() {
     this.modalElement.close();
+    const container = document.querySelector(
+      "#detail-modal-container"
+    );
+    container.removeEventListener("click", this.boundHandleStarIconClick);
   }
   addEventListeners() {
     this.closeButton.addEventListener("click", () => this.close());
@@ -381,6 +389,7 @@ class RestaurantDetailModal {
 const renderRestaurantElement = ({ category, name, distance, description, link, isFavorite }, updateFavoriteStatus, deleteRestaurant) => {
   const li = document.createElement("li");
   li.classList.add("restaurant");
+  li.dataset.name = name;
   const restaurant = {
     category,
     name,
@@ -427,37 +436,6 @@ const renderRestaurantElement = ({ category, name, distance, description, link, 
   li.querySelector(".restaurant__description").textContent = description;
   return li;
 };
-const createTabFilter = (restaurantList) => {
-  const tap_container = document.querySelector(".tab-container");
-  const tabFilter = `<div class="tab-button">
-      <button class="tab-btn text-title" data-tab="allTab">모든 음식점</button>
-      <button class="tab-btn text-title" data-tab="favoriteTab">자주 가는 음식점</button>
-      <p id="tab-filter-result"></p>
-  </div>
-  `;
-  tap_container.insertAdjacentHTML("beforeend", tabFilter);
-  setActive();
-  const tabButtons = document.querySelectorAll(".tab-btn");
-  tabButtons.forEach((button) => {
-    button.addEventListener("click", (event) => {
-      const selectedTab = event.target.dataset.tab;
-      tabButtons.forEach((button2) => button2.classList.remove("active"));
-      event.target.classList.add("active");
-      handleOnClick(selectedTab);
-    });
-  });
-  function setActive() {
-    if (restaurantList.selectedTab === "allTab") {
-      document.querySelector('.tab-btn[data-tab="allTab"]').classList.add("active");
-    } else {
-      document.querySelector('.tab-btn[data-tab="favoriteTab"]').classList.add("active");
-    }
-  }
-  function handleOnClick(selectedTab) {
-    restaurantList.setSelectedTab(selectedTab);
-    restaurantList.createRestaurantList();
-  }
-};
 const createSortFilter = (restaurantList) => {
   const addrestaurant_filter_container = document.querySelector(
     ".restaurant-filter-container"
@@ -472,16 +450,9 @@ const createSortFilter = (restaurantList) => {
   `;
   addrestaurant_filter_container.insertAdjacentHTML("beforeend", sortFilter);
   const selectElement = document.getElementById("sort-filter");
-  selectElement.addEventListener(
-    "change",
-    (event) => handleOnChange(event.target)
-  );
-  function handleOnChange(selectedSort) {
-    const text = selectedSort.options[selectedSort.selectedIndex].text;
-    document.getElementById("sort-filter-result");
-    showSelectedSortRestaurantList(text);
-  }
-  function showSelectedSortRestaurantList(selectedSort) {
+  selectElement.addEventListener("change", showSelectedSortRestaurantList);
+  function showSelectedSortRestaurantList(e) {
+    const selectedSort = e.target.value;
     restaurantList.setSelectedSort(selectedSort);
     restaurantList.createRestaurantList();
     const selectElement2 = document.getElementById("sort-filter");
@@ -499,13 +470,13 @@ class RestaurantList {
     const storedSort = JSON.parse(localStorage.getItem("sort"));
     const storedTab = JSON.parse(localStorage.getItem("tab"));
     this.selectedCategory = storedCategory ? storedCategory : "전체";
-    this.selectedSort = storedSort ? storedSort : "이름순";
+    this.selectedSort = storedSort ? storedSort : "name";
     this.selectedTab = storedTab ? storedTab : "allTab";
     this.restaurantListElement = null;
   }
   setSelectedCategory(category) {
-    localStorage.setItem("category", JSON.stringify(category));
     this.selectedCategory = category;
+    localStorage.setItem("category", JSON.stringify(category));
   }
   setSelectedSort(sortOption) {
     this.selectedSort = sortOption;
@@ -527,8 +498,18 @@ class RestaurantList {
   updateFavoriteStatus(name) {
     const restaurant = this.restaurants.find((r) => r.name === name);
     if (!restaurant) return;
+    const item = document.querySelector(`[data-name="${name}"]`);
+    const starIcon = item.querySelector(".star-icon");
+    starIcon.src = !restaurant.isFavorite ? "images/star.png" : "images/empty-star.png";
     restaurant.isFavorite = !restaurant.isFavorite;
-    this.render();
+    const storedRestaurants = JSON.parse(localStorage.getItem("restaurants"));
+    const newData = storedRestaurants.map((data) => {
+      if (data.name === name) {
+        return { ...data, isFavorite: !data.isFavorite };
+      }
+      return data;
+    });
+    localStorage.setItem("restaurants", JSON.stringify(newData));
   }
   deleteRestaurant(name) {
     this.restaurants = this.restaurants.filter(
@@ -555,7 +536,7 @@ class RestaurantList {
         (restaurant) => restaurant.category === this.selectedCategory
       );
     }
-    if (this.selectedSort === "이름순") {
+    if (this.selectedSort === "name") {
       sortFilteredData = categoryFilteredData.slice().sort((a, b) => a.name.localeCompare(b.name, "ko"));
     } else {
       sortFilteredData = categoryFilteredData.slice().sort((a, b) => a.distance - b.distance);
@@ -597,7 +578,6 @@ class RestaurantList {
   }
   addRestaurant(newRestaurant) {
     this.restaurants.push(newRestaurant);
-    console.log(this.restaurants);
     this.render();
   }
 }
@@ -636,6 +616,37 @@ const createCategoryFilter = (restaurantList) => {
     restaurantList.createRestaurantList();
     const selectElement2 = document.getElementById("category-filter");
     selectElement2.value = selectedCategory;
+  }
+};
+const createTabFilter = (restaurantList) => {
+  const tap_container = document.querySelector(".tab-container");
+  const tabFilter = `<div class="tab-button">
+      <button class="tab-btn text-title" data-tab="allTab">모든 음식점</button>
+      <button class="tab-btn text-title" data-tab="favoriteTab">자주 가는 음식점</button>
+      <p id="tab-filter-result"></p>
+  </div>
+  `;
+  tap_container.insertAdjacentHTML("beforeend", tabFilter);
+  setActive();
+  const tabButtons = document.querySelectorAll(".tab-btn");
+  tabButtons.forEach((button) => {
+    button.addEventListener("click", (event) => {
+      const selectedTab = event.target.dataset.tab;
+      tabButtons.forEach((button2) => button2.classList.remove("active"));
+      event.target.classList.add("active");
+      handleOnClick(selectedTab);
+    });
+  });
+  function setActive() {
+    if (restaurantList.selectedTab === "allTab") {
+      document.querySelector('.tab-btn[data-tab="allTab"]').classList.add("active");
+    } else {
+      document.querySelector('.tab-btn[data-tab="favoriteTab"]').classList.add("active");
+    }
+  }
+  function handleOnClick(selectedTab) {
+    restaurantList.setSelectedTab(selectedTab);
+    restaurantList.createRestaurantList();
   }
 };
 document.addEventListener("DOMContentLoaded", () => {
