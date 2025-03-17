@@ -442,12 +442,11 @@ const createSortFilter = (restaurantList) => {
   );
   const sortFilter = `<div>
   <select name="sorting" id="sort-filter" class="restaurant-filter">
-    <option value="name">이름순</option>
-    <option value="distance">거리순</option>
+    <option value="name" ${restaurantList.selectedSort === "name" ? "selected" : ""}>이름순</option>
+    <option value="distance" ${restaurantList.selectedSort === "distance" ? "selected" : ""}>거리순</option>
   </select>
-    <p id="sort-filter-result"></p>
-    </div>
-  `;
+  <p id="sort-filter-result"></p>
+</div>`;
   addrestaurant_filter_container.insertAdjacentHTML("beforeend", sortFilter);
   const selectElement = document.getElementById("sort-filter");
   selectElement.addEventListener("change", showSelectedSortRestaurantList);
@@ -587,14 +586,13 @@ const createCategoryFilter = (restaurantList) => {
   );
   const categoryFilter = `<div>
   <select name="category" id="category-filter" class="restaurant-filter">
-    <option value="전체">전체</option>
+    <option value="전체" ${restaurantList.selectedCategory === "전체" ? "selected" : ""}>전체</option>
     ${CATEGORIES.map(
-    (category) => `<option value="${category}">${category}</option>`
+    (category) => `<option value="${category}" ${category === restaurantList.selectedCategory ? "selected" : ""}>${category}</option>`
   ).join("")}
   </select>
   <p id="category-filter-result"></p>
-  </div>
-  `;
+</div>`;
   addrestaurant_filter_container.insertAdjacentHTML(
     "beforeend",
     categoryFilter
