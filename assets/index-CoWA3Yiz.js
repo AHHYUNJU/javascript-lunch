@@ -476,13 +476,16 @@ const createSortFilter = (restaurantList) => {
     "change",
     (event) => handleOnChange(event.target)
   );
-  function handleOnChange(event) {
-    showSelectedSortRestaurantList(event.target.value);
+  function handleOnChange(selectedSort) {
+    const text = selectedSort.options[selectedSort.selectedIndex].text;
+    document.getElementById("sort-filter-result");
+    showSelectedSortRestaurantList(text);
   }
   function showSelectedSortRestaurantList(selectedSort) {
     restaurantList.setSelectedSort(selectedSort);
     restaurantList.createRestaurantList();
-    document.getElementById("sort-filter").value = selectedSort;
+    const selectElement2 = document.getElementById("sort-filter");
+    selectElement2.value = selectedSort;
   }
 };
 class RestaurantList {
