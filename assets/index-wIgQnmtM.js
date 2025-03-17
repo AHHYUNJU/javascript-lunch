@@ -392,7 +392,7 @@ const renderRestaurantElement = ({ category, name, distance, description, link, 
   li.addEventListener("click", (e) => {
     const starIcon = e.target.closest(".star-icon");
     if (starIcon) {
-      starIcon.src = !restaurant.isFavorite ? "public/images/star.png" : "public/images/empty-star.png";
+      starIcon.src = !restaurant.isFavorite ? "images/star.png" : "images/empty-star.png";
       restaurant.isFavorite = !restaurant.isFavorite;
       updateFavoriteStatus(name);
       return;
